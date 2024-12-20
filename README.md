@@ -2,6 +2,13 @@
 
 **TODO: Add description**
 
+## TODO
+* keep track of channel in state
+* keep track of break time
+* send timer is up message when timer is done
+* show buttons to take break or do another work session
+* handle button press
+
 ## Add Bot to your Server
 url = https://discord.com/oauth2/authorize?client_id=1319706549479931995&permissions=8&integration_type=0&scope=bot
 
