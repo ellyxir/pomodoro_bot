@@ -34,19 +34,18 @@ defmodule Pomodoro.Consumer do
     )
 
     Pomodoro.TimerServerSupervisor.start_timer_server(user_id)
-    |> IO.inspect(label: "timerserver=")
+    |> IO.inspect(label: "timerserver including STATE=")
 
-    Pomodoro.TimerServer.start_timer(user_id, work_duration)
+    elapsed_time = Pomodoro.TimerServer.start_timer(user_id, work_duration)
 
     # acknowledge command
     response =
       %{
         type: Nostrum.Constants.InteractionCallbackType.channel_message_with_source(),
         data: %{
-          content: "timer start command received!",
-
+          content: "timer start command received: elapse time=#{elapsed_time}"
           # ephermeral message
-          flags: 64
+          # flags: 64
         }
       }
 
