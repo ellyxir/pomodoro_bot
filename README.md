@@ -1,12 +1,5 @@
 # Pomodoro
 
-**TODO: Add description**
-
-## TODO
-* when calling restart timer, we need to know if we are restarting work or break timer
-* keep track of break time
-* handle break button press
-
 ## Add Bot to your Server
 url = https://discord.com/oauth2/authorize?client_id=1319706549479931995&permissions=8&integration_type=0&scope=bot
 
