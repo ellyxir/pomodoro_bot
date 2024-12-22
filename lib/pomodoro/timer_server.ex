@@ -21,12 +21,16 @@ defmodule Pomodoro.TimerServer do
     break_duration_min: nil
   ]
 
-  def start_timer(user_id, duration_min) do
-    GenServer.call(via_tuple(user_id), {:start_timer, duration_min})
+  def start_timer(user_id, work_duration_min, break_duration_min) do
+    GenServer.call(via_tuple(user_id), {:start_timer, work_duration_min, break_duration_min})
   end
 
-  def restart_timer(user_id) do
-    GenServer.call(via_tuple(user_id), {:restart_timer})
+  @doc """
+  pass in timer which is either :work or :break
+  """
+  @spec restart_timer(Nostrum.Struct.User.id(), :work | :break) :: {:ok} | {:error, String.t()}
+  def restart_timer(user_id, timer) do
+    GenServer.call(via_tuple(user_id), {:restart_timer, timer})
   end
 
   def start_link({user_id, channel_id} = init_arg)
@@ -43,18 +47,21 @@ defmodule Pomodoro.TimerServer do
   end
 
   @impl true
-  def handle_call({:start_timer, duration_min}, _from, state)
+  def handle_call({:start_timer, work_duration_min, break_duration_min}, _from, state)
       when state.start_time_sec == nil do
-    Logger.debug(
-      "handle_call: start_timer, start state=#{inspect(state)} duration=#{duration_min}"
-    )
+    Logger.debug("handle_call: start_timer, start state=#{inspect(state)}")
 
     # send a message to ourselves after timer is done
-    # Process.send_after(self(), {:timers_up}, duration_min * 60 * 1000)
-    Process.send_after(self(), {:timers_up}, 3000)
+    Process.send_after(self(), {:timers_up}, work_duration_min * 1000 * 60)
 
     current_time_sec = System.monotonic_time(:second)
-    new_state = %{state | work_duration_min: duration_min, start_time_sec: current_time_sec}
+
+    new_state = %{
+      state
+      | work_duration_min: work_duration_min,
+        break_duration_min: break_duration_min,
+        start_time_sec: current_time_sec
+    }
 
     {:reply, 0, new_state}
     |> IO.inspect(label: "reply from start_timer")
@@ -67,15 +74,22 @@ defmodule Pomodoro.TimerServer do
     {:reply, elapsed_time, state}
   end
 
-  def handle_call({:restart_timer}, _from, %__MODULE__{} = state)
+  def handle_call({:restart_timer, timer}, _from, %__MODULE__{} = state)
       when state.start_time_sec == nil do
     Logger.debug("restarting timer for user: #{state.user_id}")
-    Process.send_after(self(), {:timers_up}, 3000)
+
+    duration =
+      case timer do
+        :work -> state.work_duration_min
+        :break -> state.break_duration_min
+      end
+
+    Process.send_after(self(), {:timers_up}, duration * 1000 * 60)
     new_state = %{state | start_time_sec: System.monotonic_time(:second)}
     {:reply, {:ok}, new_state}
   end
 
-  def handle_call({:restart_timer}, _from, %__MODULE__{} = state) do
+  def handle_call({:restart_timer, _timer}, _from, %__MODULE__{} = state) do
     Logger.error("tried to restart timer but its already running")
     {:reply, {:error, "timer already running"}, state}
   end
@@ -99,7 +113,7 @@ defmodule Pomodoro.TimerServer do
       )
 
     content_options = %{
-      content: "here is my content",
+      content: "Hey, <@#{state.user_id}>! Timer is up! Good job!",
       components: [
         Nostrum.Struct.Component.ActionRow.action_row()
         |> Nostrum.Struct.Component.ActionRow.append(work_button)

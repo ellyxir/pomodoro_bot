@@ -3,6 +3,7 @@
 **TODO: Add description**
 
 ## TODO
+* when calling restart timer, we need to know if we are restarting work or break timer
 * keep track of break time
 * handle break button press
 

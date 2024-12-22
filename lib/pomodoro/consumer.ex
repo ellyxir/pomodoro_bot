@@ -37,7 +37,7 @@ defmodule Pomodoro.Consumer do
     Pomodoro.TimerServerSupervisor.start_timer_server(user_id, channel_id)
     |> IO.inspect(label: "timerserver including STATE=")
 
-    elapsed_time = Pomodoro.TimerServer.start_timer(user_id, work_duration)
+    elapsed_time = Pomodoro.TimerServer.start_timer(user_id, work_duration, break_duration)
 
     # acknowledge command
     response =
@@ -62,8 +62,36 @@ defmodule Pomodoro.Consumer do
          } = interaction, _ws_state}
       ) do
     content =
-      case Pomodoro.TimerServer.restart_timer(user_id) do
+      case Pomodoro.TimerServer.restart_timer(user_id, :work) do
         {:ok} -> "Hey, <@#{user_id}>! Timer restarted!"
+        {:error, reason} -> "Could not restart timer, reason=#{inspect(reason)}"
+      end
+
+    # acknowledge command
+    response =
+      %{
+        type: Nostrum.Constants.InteractionCallbackType.channel_message_with_source(),
+        data: %{
+          content: content
+          # ephermeral message
+          # flags: 64
+        }
+      }
+
+    Nostrum.Api.create_interaction_response(interaction, response)
+  end
+
+  def handle_event(
+        {:INTERACTION_CREATE,
+         %Nostrum.Struct.Interaction{
+           user: %Nostrum.Struct.User{id: user_id},
+           data: %{custom_id: "StartBreakTimer"} = _data,
+           channel_id: _channel_id
+         } = interaction, _ws_state}
+      ) do
+    content =
+      case Pomodoro.TimerServer.restart_timer(user_id, :break) do
+        {:ok} -> "Hey, <@#{user_id}>! Timer restarted! We are on break! Woohoo!"
         {:error, reason} -> "Could not restart timer, reason=#{inspect(reason)}"
       end
 
