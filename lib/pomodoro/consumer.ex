@@ -31,7 +31,7 @@ defmodule Pomodoro.Consumer do
     embed = 
       %Nostrum.Struct.Embed{}
       |> Nostrum.Struct.Embed.put_title("#{interaction.user.username} Pomodoro Timer")
-      |> Nostrum.Struct.Embed.put_description("#{timer_status_msg}\nElapsed time: #{elapsed_time}")
+      |> Nostrum.Struct.Embed.put_description("#{timer_status_msg}\nElapsed time: #{elapsed_time} seconds")
     response =
       %{
         type: Nostrum.Constants.InteractionCallbackType.channel_message_with_source(),
