@@ -21,14 +21,19 @@ defmodule Pomodoro.TimerServer do
     break_duration_min: nil
   ]
 
+  def check_timer(user_id) do
+    GenServer.call(via_tuple(user_id), {:check_timer})
+  end
+  
   def start_timer(user_id, work_duration_min, break_duration_min) do
     GenServer.call(via_tuple(user_id), {:start_timer, work_duration_min, break_duration_min})
   end
 
   @doc """
   pass in timer which is either :work or :break
+  returns {:ok, work_duration_min}
   """
-  @spec restart_timer(Nostrum.Struct.User.id(), :work | :break) :: {:ok} | {:error, String.t()}
+  @spec restart_timer(Nostrum.Struct.User.id(), :work | :break) :: {:ok, integer()} | {:error, String.t()}
   def restart_timer(user_id, timer) do
     GenServer.call(via_tuple(user_id), {:restart_timer, timer})
   end
@@ -44,6 +49,13 @@ defmodule Pomodoro.TimerServer do
     state = %__MODULE__{user_id: user_id, channel_id: channel_id}
     Logger.error("timerserver init=#{inspect(user_id)}")
     {:ok, state}
+  end
+
+  def handle_call({:check_timer}, _from, state) do
+    current_time_sec = System.monotonic_time(:second)
+    is_running = state.start_time_sec != nil
+    elapsed_time = if is_running, do: current_time_sec - state.start_time_sec, else: 0
+    {:reply, {:ok, is_running, elapsed_time}, state}
   end
 
   @impl true
@@ -86,7 +98,7 @@ defmodule Pomodoro.TimerServer do
 
     Process.send_after(self(), {:timers_up}, duration * 1000 * 60)
     new_state = %{state | start_time_sec: System.monotonic_time(:second)}
-    {:reply, {:ok}, new_state}
+    {:reply, {:ok, duration}, new_state}
   end
 
   def handle_call({:restart_timer, _timer}, _from, %__MODULE__{} = state) do
@@ -100,6 +112,9 @@ defmodule Pomodoro.TimerServer do
   def handle_info({:timers_up}, %__MODULE__{} = state) do
     Logger.debug("timer_server: timer is UP! state=#{inspect(state, pretty: true)}")
 
+    {:ok, user} = Nostrum.Api.get_user(state.user_id)
+    username = user.username
+    
     work_button =
       Nostrum.Struct.Component.Button.interaction_button(
         "Start Work Timer",
@@ -112,8 +127,14 @@ defmodule Pomodoro.TimerServer do
         @start_break_button_name
       )
 
+    embed = 
+      %Nostrum.Struct.Embed{}
+      |> Nostrum.Struct.Embed.put_title("#{username} Pomodoro Timer")
+      |> Nostrum.Struct.Embed.put_description("Timer is up! What would you like to do next?")
+
     content_options = %{
-      content: "Hey, <@#{state.user_id}>! Timer is up! Good job!",
+      content: "<@#{state.user_id}>",
+      embed: embed,
       components: [
         Nostrum.Struct.Component.ActionRow.action_row()
         |> Nostrum.Struct.Component.ActionRow.append(work_button)
