@@ -2,6 +2,10 @@
 
 ## Add Bot to your Server
 url = https://discord.com/oauth2/authorize?client_id=1319706549479931995&permissions=8&integration_type=0&scope=bot
+permissions do not need to be admin permissions, but im too lazy to figure it out. it should only need to do slash commands, reply and send messages.
+
+## Thanks
+Thanks to Michael (michael_repair on Discord) for the definition and helping to test it and come up with the text messages.
 
 ## Requirements
 Users will use /pomo-start work:10min break:5min (change the time period) to start their timer. 
@@ -30,6 +34,8 @@ def deps do
   ]
 end
 ```
+
+You need to set the $BOT_TOKEN environment variable with your discord bot token.
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
