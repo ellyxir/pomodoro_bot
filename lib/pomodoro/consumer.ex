@@ -197,7 +197,7 @@ defmodule Pomodoro.Consumer do
          } = interaction, _ws_state}
       ) do
     embed =
-      case Pomodoro.TimerServer.restart_timer(user_id, :work) do
+      case Pomodoro.TimerServer.restart_timer(user_id, :break) do
         {:ok, duration} -> 
           %Nostrum.Struct.Embed{}
           |> Nostrum.Struct.Embed.put_title("#{interaction.user.username} Pomodoro Timer")
